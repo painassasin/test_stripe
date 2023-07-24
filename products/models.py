@@ -18,7 +18,7 @@ class Product(models.Model):
             'unit_amount': self.price,
             'product_data': {
                 'name': self.name,
-            }
+            },
         }
 
     def __str__(self):

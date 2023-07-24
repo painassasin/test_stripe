@@ -1,0 +1,28 @@
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+use_parentheses = true
+line_length = 120
+skip_glob = [
+    '**/migrations/**',
+    '.git',
+    'templates',
+    'venv',
+]
+combine_as_imports = true
+combine_star = true
+known_first_party = 'shop,products'
+
+[tool.black]
+target-version = ['py310']
+skip-string-normalization = true
+skip-magic-trailing-coma = true
+line-length = 120
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | venv
+  | migrations
+)/
+'''

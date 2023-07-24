@@ -1,9 +1,9 @@
 import stripe
 from django.conf import settings
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views import View
-from django.views.generic import TemplateView, ListView
+from django.views.generic import ListView, TemplateView
 
 from products.models import Product, StripeCheckoutSession
 
@@ -11,7 +11,6 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 class CreateCheckoutSessionView(View):
-
     def post(self, request, *args, **kwargs):
         product = get_object_or_404(Product, pk=kwargs['pk'])
 
@@ -31,7 +30,7 @@ class CreateCheckoutSessionView(View):
         StripeCheckoutSession.objects.create(
             stripe_id=checkout_session.stripe_id,
             product=product,
-            status=checkout_session['status']  # have to be 'open'
+            status=checkout_session['status'],  # have to be 'open'
         )
 
         return redirect(checkout_session.url)
