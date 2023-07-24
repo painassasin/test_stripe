@@ -1,10 +1,11 @@
 import stripe
 from django.conf import settings
 from django.shortcuts import redirect, get_object_or_404
+from django.urls import reverse
 from django.views import View
-from django.views.generic import TemplateView, ListView, DetailView
+from django.views.generic import TemplateView, ListView
 
-from products.models import Product
+from products.models import Product, StripeCheckoutSession
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -18,20 +19,21 @@ class CreateCheckoutSessionView(View):
             payment_method_types=['card'],
             line_items=[
                 {
-                    'price_data': {
-                        'currency': 'usd',
-                        'unit_amount': product.price,
-                        'product_data': {
-                            'name': product.name
-                        }
-                    },
+                    'price_data': product.stripe_price_data,
                     'quantity': 1,
                 },
             ],
             mode='payment',
-            success_url=settings.DOMAIN + '/success/',
-            cancel_url=settings.DOMAIN + '/cancel/',
+            success_url=settings.DOMAIN + reverse('success') + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=settings.DOMAIN + reverse('cancel'),
         )
+
+        StripeCheckoutSession.objects.create(
+            stripe_id=checkout_session.stripe_id,
+            product=product,
+            status=checkout_session['status']  # have to be 'open'
+        )
+
         return redirect(checkout_session.url)
 
 
@@ -40,12 +42,19 @@ class Products(ListView):
     template_name = 'home.html'
 
 
-class ProductDetails(DetailView):
-    model = Product
-
-
 class SuccessView(TemplateView):
     template_name = 'success.html'
+
+    def get(self, request, *args, **kwargs):
+        stripe_session = get_object_or_404(StripeCheckoutSession, stripe_id=request.GET.get('session_id'))
+
+        session = stripe.checkout.Session.retrieve(stripe_session.stripe_id)
+
+        stripe_session.customer_email = session['customer_details']['email']
+        stripe_session.status = session['status']
+        stripe_session.save()
+
+        return super().get(request, args, kwargs)
 
 
 class CancelView(TemplateView):
